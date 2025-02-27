@@ -24,6 +24,16 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
+        window.addProductToFirestore = addProductToFirestore;
+        window.db = db;
+        window.collection = collection;
+        window.onSnapshot = onSnapshot;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        window.getDoc = getDoc;
+        window.addDoc = addDoc;
+
         async function addProductToFirestore(product) {
             try {
                 await addDoc(collection(db, "products"), product);
@@ -33,16 +43,6 @@
                 alert("فيه مشكلة، حاول تاني!");
             }
         }
-
-        window.addProductToFirestore = addProductToFirestore;
-        window.db = db;
-        window.collection = collection;
-        window.onSnapshot = onSnapshot;
-        window.doc = doc;
-        window.updateDoc = updateDoc;
-        window.deleteDoc = deleteDoc;
-        window.getDoc = getDoc;
-        window.addDoc = addDoc; // إضافة addDoc للاستخدام في moveToShipped
     </script>
 
     <style>
@@ -452,39 +452,52 @@
 
         function loadProductsForAdmin() {
             const productsList = document.getElementById("product-list");
+            let currentProducts = new Set(); // لمنع التكرار
+
             window.onSnapshot(window.collection(window.db, "products"), (querySnapshot) => {
+                productsList.innerHTML = ""; // تنظيف القائمة قبل التحديث
                 allProducts = [];
-                productsList.innerHTML = "";
                 querySnapshot.forEach((doc) => {
                     const product = doc.data();
-                    allProducts.push({ id: doc.id, ...product });
-                    const li = document.createElement("li");
-                    li.className = "product-item";
-                    li.innerHTML = `
-                        <div style="display: flex; align-items: center;">
-                            <img src="${product.image}" alt="${product.name}" width="80" loading="lazy">
-                            <div>
-                                <strong>${product.name}</strong><br>
-                                <small>${product.category}</small><br>
-                                <small>السعر: ${product.price.toFixed(2)} جنيه</small>
+                    const productId = doc.id;
+                    if (!currentProducts.has(productId)) { // التأكد من عدم التكرار
+                        currentProducts.add(productId);
+                        allProducts.push({ id: productId, ...product });
+                        const li = document.createElement("li");
+                        li.className = "product-item";
+                        li.setAttribute("data-id", productId); // إضافة معرف للمنتج
+                        li.innerHTML = `
+                            <div style="display: flex; align-items: center;">
+                                <img src="${product.image}" alt="${product.name}" width="80" loading="lazy">
+                                <div>
+                                    <strong>${product.name}</strong><br>
+                                    <small>${product.category}</small><br>
+                                    <small>السعر: ${product.price.toFixed(2)} جنيه</small>
+                                </div>
                             </div>
-                        </div>
-                        <div class="product-actions">
-                            <button onclick="deleteProduct('${doc.id}')">حذف</button>
-                            <button class="edit" onclick="openEditProduct('${doc.id}')">تعديل</button>
-                        </div>
-                    `;
-                    productsList.appendChild(li);
+                            <div class="product-actions">
+                                <button onclick="deleteProduct('${productId}')">حذف</button>
+                                <button class="edit" onclick="openEditProduct('${productId}')">تعديل</button>
+                            </div>
+                        `;
+                        productsList.appendChild(li);
+                    }
                 });
             }, (error) => {
                 console.error("خطأ في جلب المنتجات:", error);
+                alert("فيه مشكلة في تحميل المنتجات!");
             });
         }
 
         async function deleteProduct(productId) {
             if (confirm("متأكد من الحذف؟")) {
-                await window.deleteDoc(window.doc(window.db, "products", productId));
-                alert("تم الحذف!");
+                try {
+                    await window.deleteDoc(window.doc(window.db, "products", productId));
+                    alert("تم الحذف!");
+                } catch (error) {
+                    console.error("خطأ في الحذف:", error);
+                    alert("فيه مشكلة، حاول تاني!");
+                }
             }
         }
 
@@ -657,6 +670,7 @@
             filteredProducts.forEach(product => {
                 const li = document.createElement("li");
                 li.className = "product-item";
+                li.setAttribute("data-id", product.id);
                 li.innerHTML = `
                     <div style="display: flex; align-items: center;">
                         <img src="${product.image}" alt="${product.name}" width="80" loading="lazy">
