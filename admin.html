@@ -459,6 +459,7 @@
                 console.log("تم جلب البيانات من Firestore!");
                 productsList.innerHTML = ""; // تنظيف القائمة قبل التحديث
                 allProducts = [];
+
                 if (querySnapshot.empty) {
                     productsList.innerHTML = '<li style="text-align: center;">لا توجد منتجات حاليًا.</li>';
                     return;
@@ -467,6 +468,11 @@
                 querySnapshot.forEach((doc) => {
                     const product = doc.data();
                     const productId = doc.id;
+                    console.log(`منتج: ${product.name}, السعر: ${product.price}`); // لمعرفة البيانات اللي بتيجي
+
+                    // تحقق إن السعر موجود وعدد، لو مش موجود يستخدم 0
+                    const price = (typeof product.price === 'number' && !isNaN(product.price)) ? product.price.toFixed(2) : "غير محدد";
+
                     allProducts.push({ id: productId, ...product });
 
                     // التأكد من عدم وجود عنصر مكرر بنفس المعرف
@@ -480,7 +486,7 @@
                                 <div>
                                     <strong>${product.name}</strong><br>
                                     <small>${product.category}</small><br>
-                                    <small>السعر: ${product.price.toFixed(2)} جنيه</small>
+                                    <small>السعر: ${price} جنيه</small>
                                 </div>
                             </div>
                             <div class="product-actions">
@@ -515,7 +521,7 @@
                     const product = doc.data();
                     document.getElementById('editProductName').value = product.name;
                     document.getElementById('editProductCategory').value = product.category;
-                    document.getElementById('editProductPrice').value = product.price;
+                    document.getElementById('editProductPrice').value = product.price || 0; // قيمة افتراضية لو السعر مش موجود
                     document.getElementById('editProductDescription').value = product.description;
                     document.getElementById('edit-image-preview').style.backgroundImage = `url(${product.image})`;
                     document.getElementById('editProductModal').style.display = 'block';
@@ -676,6 +682,7 @@
             }
 
             filteredProducts.forEach(product => {
+                const price = (typeof product.price === 'number' && !isNaN(product.price)) ? product.price.toFixed(2) : "غير محدد";
                 const li = document.createElement("li");
                 li.className = "product-item";
                 li.setAttribute("data-id", product.id);
@@ -685,7 +692,7 @@
                         <div>
                             <strong>${product.name}</strong><br>
                             <small>${product.category}</small><br>
-                            <small>السعر: ${product.price.toFixed(2)} جنيه</small>
+                            <small>السعر: ${price} جنيه</small>
                         </div>
                     </div>
                     <div class="product-actions">
@@ -706,7 +713,7 @@
             if (selectedSection) {
                 selectedSection.classList.remove('hidden');
                 if (sectionId === 'manage-products') {
-                    loadProductsForAdmin(); // استدعاء تحميل المنتجات لما تفتح القسم
+                    loadProductsForAdmin();
                 } else if (sectionId === 'messages') {
                     renderMessages();
                 } else if (sectionId === 'shipped') {
@@ -731,7 +738,7 @@
         window.onload = () => {
             renderMessages();
             showSection('add-product');
-            loadProductsForAdmin(); // تحميل المنتجات أول ما الصفحة تفتح
+            loadProductsForAdmin();
         };
     </script>
 </body>
