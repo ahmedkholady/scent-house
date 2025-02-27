@@ -451,21 +451,29 @@
         });
 
         function loadProductsForAdmin() {
+            console.log("جاري تحميل المنتجات...");
             const productsList = document.getElementById("product-list");
-            let currentProducts = new Set(); // لمنع التكرار
+            productsList.innerHTML = '<li style="text-align: center;">جاري التحميل...</li>';
 
             window.onSnapshot(window.collection(window.db, "products"), (querySnapshot) => {
+                console.log("تم جلب البيانات من Firestore!");
                 productsList.innerHTML = ""; // تنظيف القائمة قبل التحديث
                 allProducts = [];
+                if (querySnapshot.empty) {
+                    productsList.innerHTML = '<li style="text-align: center;">لا توجد منتجات حاليًا.</li>';
+                    return;
+                }
+
                 querySnapshot.forEach((doc) => {
                     const product = doc.data();
                     const productId = doc.id;
-                    if (!currentProducts.has(productId)) { // التأكد من عدم التكرار
-                        currentProducts.add(productId);
-                        allProducts.push({ id: productId, ...product });
+                    allProducts.push({ id: productId, ...product });
+
+                    // التأكد من عدم وجود عنصر مكرر بنفس المعرف
+                    if (!document.querySelector(`[data-id="${productId}"]`)) {
                         const li = document.createElement("li");
                         li.className = "product-item";
-                        li.setAttribute("data-id", productId); // إضافة معرف للمنتج
+                        li.setAttribute("data-id", productId);
                         li.innerHTML = `
                             <div style="display: flex; align-items: center;">
                                 <img src="${product.image}" alt="${product.name}" width="80" loading="lazy">
@@ -484,8 +492,8 @@
                     }
                 });
             }, (error) => {
-                console.error("خطأ في جلب المنتجات:", error);
-                alert("فيه مشكلة في تحميل المنتجات!");
+                console.error("خطأ في جلب المنتجات:", error.message);
+                productsList.innerHTML = '<li style="text-align: center;">فيه مشكلة في تحميل المنتجات!</li>';
             });
         }
 
@@ -698,7 +706,7 @@
             if (selectedSection) {
                 selectedSection.classList.remove('hidden');
                 if (sectionId === 'manage-products') {
-                    loadProductsForAdmin();
+                    loadProductsForAdmin(); // استدعاء تحميل المنتجات لما تفتح القسم
                 } else if (sectionId === 'messages') {
                     renderMessages();
                 } else if (sectionId === 'shipped') {
@@ -723,6 +731,7 @@
         window.onload = () => {
             renderMessages();
             showSection('add-product');
+            loadProductsForAdmin(); // تحميل المنتجات أول ما الصفحة تفتح
         };
     </script>
 </body>
