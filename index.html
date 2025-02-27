@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scent House - متجر العطور</title>
+
+    <!-- تحميل Firebase -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDHaLJXsi0B31UPzofFtUTMuOfeTezFnpE",
+            authDomain: "scent-house.firebaseapp.com",
+            projectId: "scent-house",
+            storageBucket: "scent-house.firebasestorage.app",
+            messagingSenderId: "931869080177",
+            appId: "1:931869080177:web:13c4111cfe05958ff5b9d0",
+            measurementId: "G-C7B5MBGW5Q"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+    </script>
+
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f9e7f7;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            background: linear-gradient(120deg, #ff4d4d, #ff9a9e);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 10px 20px;
+            flex-wrap: wrap;
+        }
+        .categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .categories a {
+            text-decoration: none;
+            color: #333;
+            padding: 10px 15px;
+            font-size: 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .categories a.active {
+            background-color: #ff4d4d;
+            color: white;
+        }
+        .categories a:hover {
+            background-color: #ff9a9e;
+            color: white;
+            transform: scale(1.05);
+        }
+        .cart-icon {
+            width: 50px;
+            height: 50px;
+            background-color: #ff4d4d;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        .cart-icon:hover {
+            transform: scale(1.1);
+        }
+        #searchInput {
+            padding: 10px;
+            width: 80%;
+            max-width: 400px;
+            border: 1px solid #ccc;
+            border-radius: 20px;
+            margin: 20px auto;
+            display: block;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 16px;
+        }
+        .product-section {
+            padding: 20px;
+            text-align: center;
+        }
+        .section-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #ff4d4d;
+        }
+        .product-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+        .product-card {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            width: 250px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            max-width: 100%;
+        }
+        .product-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+        .product-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 10px;
+            transition: transform 0.3s ease;
+        }
+        .product-card img:hover {
+            transform: scale(1.1);
+        }
+        button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s ease, transform 0.3s ease;
+            width: 100%;
+            max-width: 200px;
+        }
+        button:hover {
+            background-color: #ff9a9e;
+            transform: scale(1.05);
+        }
+        button.secondary {
+            background-color: #76b852;
+            margin-left: 0;
+            margin-top: 5px;
+        }
+        button.secondary:hover {
+            background-color: #5c903b;
+        }
+        .hidden {
+            display: none;
+        }
+        #cartModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        #cartModal .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+            width: 400px;
+        }
+        #cartModal h2 {
+            margin-bottom: 15px;
+            color: #ff4d4d;
+        }
+        #cartModal ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        #cartModal li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        #cartModal li img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-right: 10px;
+        }
+        #cartModal button {
+            margin-left: 10px;
+            width: auto;
+        }
+        #orderFormModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        #orderFormModal .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            max-width: 90%;
+            width: 400px;
+            text-align: right;
+        }
+        #orderFormModal h2 {
+            margin-bottom: 15px;
+            color: #ff4d4d;
+        }
+        #orderFormModal input,
+        #orderFormModal textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #orderFormModal label {
+            font-weight: bold;
+            margin-top: 10px;
+            display: block;
+            color: #333;
+        }
+        #orderFormModal small {
+            display: block;
+            margin-top: 5px;
+            color: #777;
+            font-size: 12px;
+        }
+        #orderFormModal button {
+            width: 100%;
+            padding: 10px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        #orderFormModal button:hover {
+            background-color: #ff9a9e;
+        }
+        #admin-dashboard {
+            padding: 20px;
+        }
+        #admin-dashboard h2 {
+            margin-bottom: 20px;
+            color: #ff4d4d;
+        }
+        #message-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #message-list li {
+            background-color: #f9e7f7;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        #message-list li span {
+            font-size: 14px;
+            color: #555;
+        }
+        #message-list li button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        #message-list li button:hover {
+            background-color: #ff9a9e;
+        }
+
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                padding: 10px;
+            }
+            .categories {
+                justify-content: center;
+                width: 100%;
+            }
+            .cart-icon {
+                margin-top: 10px;
+            }
+            .product-card {
+                width: 100%;
+                max-width: 300px;
+            }
+            button {
+                font-size: 16px;
+                padding: 12px;
+            }
+            #searchInput {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="site-title">Scent House</h1>
+    </header>
+    <nav>
+        <div id="language-switcher" onclick="toggleLanguage()">AR / EN</div>
+        <div class="categories">
+            <a href="#" onclick="event.preventDefault(); showSection('all')">جميع المنتجات</a>
+            <a href="#" onclick="event.preventDefault(); showSection('men')">عطور رجالية</a>
+            <a href="#" onclick="event.preventDefault(); showSection('women')">عطور نسائية</a>
+            <a href="#" onclick="event.preventDefault(); showSection('kids')">عطور أطفال</a>
+        </div>
+        <div class="cart-icon" onclick="openCart()">🛒</div>
+    </nav>
+
+    <input type="text" id="searchInput" placeholder="ابحث عن منتج..." onkeyup="filterProducts()" />
+
+    <section class="product-section hidden" id="all">
+        <h2 class="section-title">جميع المنتجات</h2>
+        <div class="product-container" id="all-products-container"></div>
+    </section>
+
+    <section class="product-section hidden" id="men">
+        <h2 class="section-title">عطور رجالية</h2>
+        <div class="product-container" id="men-products-container"></div>
+    </section>
+
+    <section class="product-section hidden" id="women">
+        <h2 class="section-title">عطور نسائية</h2>
+        <div class="product-container" id="women-products-container"></div>
+    </section>
+
+    <section class="product-section hidden" id="kids">
+        <h2 class="section-title">عطور أطفال</h2>
+        <div class="product-container" id="kids-products-container"></div>
+    </section>
+
+    <div id="cartModal">
+        <div class="modal-content">
+            <h2>سلة المشتريات</h2>
+            <ul id="cartItems"></ul>
+            <button onclick="closeCart()">إغلاق السلة</button>
+        </div>
+    </div>
+
+    <div id="orderFormModal" onclick="closeOrderModal(event)">
+        <div class="modal-content">
+            <h2>طلب المنتج</h2>
+            <form id="orderForm">
+                <label for="customerName">الاسم</label>
+                <input type="text" id="customerName" placeholder="أدخل الاسم" required />
+                <label for="phoneNumber">رقم الهاتف (مع كود الدولة)</label>
+                <input type="text" id="phoneNumber" placeholder="مثال: +201234567890" required />
+                <small>مثل: +201234567890</small>
+                <label for="address">العنوان</label>
+                <textarea id="address" placeholder="أدخل العنوان" rows="4" required></textarea>
+                <label for="message">رسالة (اختياري)</label>
+                <textarea id="message" placeholder="اكتب رسالة..." rows="3"></textarea>
+                <button type="button" onclick="submitOrder()">إرسال الطلب</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="admin-dashboard" class="hidden">
+        <h2>لوحة التحكم</h2>
+        <button onclick="showMessages()">عرض الرسائل</button>
+        <ul id="message-list"></ul>
+    </div>
+
+    <script>
+        let products = [];
+        let cart = [];
+        let messages = [];
+        let currentLanguage = 'ar';
+        let currentProduct = null; // لتخزين المنتج اللي اتطلب من "اطلب الآن"
+
+        function renderProducts(containerId, category = null) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            window.onSnapshot(window.collection(window.db, "products"), (querySnapshot) => {
+                products = [];
+                querySnapshot.forEach((doc) => {
+                    products.push({ id: doc.id, ...doc.data() });
+                });
+
+                const filteredProducts = category ? products.filter(product => product.category === category) : products;
+
+                if (filteredProducts.length === 0) {
+                    container.innerHTML = '<p style="text-align: center;">لا توجد منتجات في هذا القسم.</p>';
+                    return;
+                }
+
+                filteredProducts.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <img src="${product.image}" alt="${product.name}" loading="lazy">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <p><strong>السعر: ${product.price.toFixed(2)} جنيه</strong></p>
+                        <button onclick="addToCart('${product.name}')">أضف للسلة</button>
+                        <button class="secondary" onclick="buyNow('${product.name}')">اطلب الآن</button>
+                    `;
+                    container.appendChild(card);
+                });
+            }, (error) => {
+                console.error("خطأ في جلب المنتجات:", error);
+            });
+        }
+
+        function showSection(sectionId) {
+            document.querySelectorAll('.product-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            const selectedSection = document.getElementById(sectionId);
+            if (selectedSection) {
+                selectedSection.classList.remove('hidden');
+                if (sectionId === 'all') {
+                    renderProducts('all-products-container');
+                } else if (sectionId === 'men') {
+                    renderProducts('men-products-container', 'men');
+                } else if (sectionId === 'women') {
+                    renderProducts('women-products-container', 'women');
+                } else if (sectionId === 'kids') {
+                    renderProducts('kids-products-container', 'kids');
+                }
+            }
+        }
+
+        function addToCart(productName) {
+            const product = products.find(p => p.name === productName);
+            if (!product) return;
+
+            const cartItem = cart.find(item => item.name === productName);
+            if (cartItem) {
+                cartItem.quantity = (cartItem.quantity || 1) + 1;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            alert("تم الإضافة!");
+            updateCart();
+        }
+
+        function openCart() {
+            updateCart();
+            document.getElementById('cartModal').style.display = 'block';
+        }
+
+        function closeCart() {
+            document.getElementById('cartModal').style.display = 'none';
+        }
+
+        function updateCart() {
+            const cartItemsList = document.getElementById('cartItems');
+            cartItemsList.innerHTML = '';
+            if (cart.length === 0) {
+                cartItemsList.innerHTML = '<li style="text-align: center;">السلة فارغة حالياً</li>';
+                return;
+            }
+            cart.forEach((item, index) => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <img src="${item.image}" alt="${item.name}" loading="lazy">
+                    <span>${item.name} (الكمية: ${item.quantity})</span>
+                    <button onclick="removeFromCart(${index})">إزالة</button>
+                    <button class="secondary" onclick="buyNow('${item.name}')">اشترِ الآن</button>
+                `;
+                cartItemsList.appendChild(li);
+            });
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCart();
+        }
+
+        function buyNow(productName) {
+            currentProduct = productName; // تعيين اسم المنتج المختار
+            document.getElementById('orderFormModal').style.display = 'block';
+        }
+
+        async function submitOrder() {
+            const customerName = document.getElementById('customerName').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const address = document.getElementById('address').value;
+            const message = document.getElementById('message').value;
+
+            if (!customerName || !phoneNumber || !address) {
+                alert('فيه مشكلة، حاول تاني!');
+                return;
+            }
+
+            // إذا كانت السلة فاضية، استخدم اسم المنتج من "اطلب الآن"، وإلا استخدم السلة
+            const orderedProducts = cart.length > 0 ? cart.map(item => `${item.name} (الكمية: ${item.quantity})`).join(", ") : currentProduct;
+
+            const order = {
+                name: customerName,
+                phone: phoneNumber,
+                address: address,
+                message: message || '',
+                products: orderedProducts,
+                timestamp: new Date().toISOString()
+            };
+
+            try {
+                await window.addDoc(window.collection(window.db, "orders"), order);
+                alert('تم الطلب!');
+                document.getElementById('orderFormModal').style.display = 'none';
+                document.getElementById('orderForm').reset();
+                cart = [];
+                currentProduct = null; // تصفير المنتج المختار بعد الطلب
+                updateCart();
+                closeCart();
+            } catch (error) {
+                console.error("خطأ في الطلب:", error.message);
+                alert('فيه مشكلة، حاول تاني!');
+            }
+        }
+
+        function closeOrderModal(event) {
+            if (event.target === document.getElementById('orderFormModal')) {
+                document.getElementById('orderFormModal').style.display = 'none';
+            }
+        }
+
+        function filterProducts() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filteredProducts = products.filter(product =>
+                product.name.toLowerCase().includes(query) ||
+                product.description.toLowerCase().includes(query) ||
+                product.category.toLowerCase().includes(query)
+            );
+
+            document.querySelectorAll('.product-container').forEach(container => {
+                container.innerHTML = '';
+                if (filteredProducts.length === 0) {
+                    container.innerHTML = '<p style="text-align: center;">لا توجد منتجات مطابقة للبحث.</p>';
+                    return;
+                }
+                filteredProducts.forEach(product => {
+                    const card = document.createElement('div');
+                    card.className = 'product-card';
+                    card.innerHTML = `
+                        <img src="${product.image}" alt="${product.name}" loading="lazy">
+                        <h3>${product.name}</h3>
+                        <p>${product.description}</p>
+                        <p><strong>السعر: ${product.price.toFixed(2)} جنيه</strong></p>
+                        <button onclick="addToCart('${product.name}')">أضف للسلة</button>
+                        <button class="secondary" onclick="buyNow('${product.name}')">اطلب الآن</button>
+                    `;
+                    container.appendChild(card);
+                });
+            });
+        }
+
+        function toggleLanguage() {
+            if (currentLanguage === 'ar') {
+                currentLanguage = 'en';
+                document.getElementById('site-title').textContent = 'Scent House';
+                document.getElementById('language-switcher').textContent = 'EN / AR';
+                document.querySelector('.categories a:nth-child(1)').textContent = 'All Products';
+                document.querySelector('.categories a:nth-child(2)').textContent = 'Men Perfumes';
+                document.querySelector('.categories a:nth-child(3)').textContent = 'Women Perfumes';
+                document.querySelector('.categories a:nth-child(4)').textContent = 'Kids Perfumes';
+            } else {
+                currentLanguage = 'ar';
+                document.getElementById('site-title').textContent = 'Scent House';
+                document.getElementById('language-switcher').textContent = 'AR / EN';
+                document.querySelector('.categories a:nth-child(1)').textContent = 'جميع المنتجات';
+                document.querySelector('.categories a:nth-child(2)').textContent = 'عطور رجالية';
+                document.querySelector('.categories a:nth-child(3)').textContent = 'عطور نسائية';
+                document.querySelector('.categories a:nth-child(4)').textContent = 'عطور أطفال';
+            }
+        }
+
+        window.onload = () => {
+            showSection('all');
+        };
+    </script>
+</body>
+</html>
